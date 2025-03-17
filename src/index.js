@@ -66,7 +66,7 @@ app.get('/api/weddingmusic/wedding', async (req, res) => {
 
     //Respondo
 
-    res.send(result)
+    res.json(result)
 
 });
 
@@ -77,9 +77,18 @@ app.post('/api/weddingmusic/wedding', async (req, res) => {
 
     //Conexión a la base de datos MySQL
 
-    const conn = await getConnection();
+    const conn = await getConnection(`
+        INSERT INTO wedding_music.wedding
+            (date, spouse_one_name, spouse_two_name, local)
+        VALUES ('?', '?', '?', '?')`);
 
     //Lanzamos el resultado
+
+    const [result] = await conn.execute();
+
+    //Cerramos conexión
+
+    await conn.end();
 
     //Respondo
 
