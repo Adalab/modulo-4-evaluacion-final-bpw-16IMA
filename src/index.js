@@ -75,12 +75,19 @@ app.post('/api/weddingmusic/wedding', async (req, res) => {
 
     // Preparar la sentencia SQL
 
+    if(req.body.date || req.body.spouse_one_name || req.body.spouse_two_name || req.body.localitation || === ' ') {
+        return res.status(400).json({ 
+            success: false,
+            error: 'Faltan datos obligatorios' });
+    });
+
     //Conexión a la base de datos MySQL
 
     const conn = await getConnection(`
         INSERT INTO wedding_music.wedding
-            (date, spouse_one_name, spouse_two_name, local)
-        VALUES ('?', '?', '?', '?')`);
+            (date, spouse_one_name, spouse_two_name, localitation)
+        VALUES ('?', '?', '?', '?')`,
+        [req.body.date, req.body.spouse_one_name, req.body.spouse_two_name, req.body.localitation]);
 
     //Lanzamos el resultado
 
@@ -92,9 +99,15 @@ app.post('/api/weddingmusic/wedding', async (req, res) => {
 
     //Respondo
 
-    res.send('{},{}')
-
-});
+    res.json({
+        success: true,
+        wedding_id: result.insertId,
+        message: 'Wedding registrada correctamente'
+        obj: {
+            ...req.body,
+            wedding_id: result.insertId,
+        }
+    });
 
 app.put('/api/weddingmusic/wedding', async (req, res) => {
     //UPDATE
