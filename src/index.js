@@ -11,7 +11,7 @@ app.use(express.json());
 
 console.log('Puerto:', process.env.PORT);
 
-const port = process.env.PORT;
+const port = process.env.PORT || 4000;
 app.listen(port, () => {
     console.log(`Server funcionando en el puerto ${port}`);
 });
@@ -67,77 +67,135 @@ app.get('/api/weddingmusic/wedding', async (req, res) => {
     } catch (error) {
 
         await conn.end();
-        res.status(500).json({ success: false, error:'Boda no encontrada' });
+        res.status(500).json({ 
+            success: false, 
+            error:'Error al buscar boda' });
     }
 });
 
 
 app.post('/api/weddingmusic/wedding', async (req, res) => {
-    
-    if (!req.body.date || !req.body.spouse_one_name || !req.body.spouse_two_name || !req.body.localitation) {
-        return res.status(400).json({ 
-            success: false,
-            error: 'Faltan datos obligatorios' 
-        });
-    }
+    try {
+        const { date, spouse_one_name, spouse_two_name, localitation } = req.body;
 
-    const conn = await getConnection();
-    
-    const [result] = await conn.execute(`
-        INSERT INTO wedding_music.wedding
-            (date, spouse_one_name, spouse_two_name, localitation)
-        VALUES (?, ?, ?, ?)`,
-        [req.body.date, req.body.spouse_one_name, req.body.spouse_two_name, req.body.localitation]);
-
-    await conn.end();
-
-    res.json({
-        success: true,  
-        wedding_id: result.insertId,
-        message: 'Boda registrada correctamente',
-        weddingObj: {
-            ...req.body,
-            wedding_id: result.insertId,
+        if (!date || !spouse_one_name || !spouse_two_name || !localitation) {
+            return res.status(400).json({ 
+                success: false, 
+                error: "Faltan datos obligatorios" });
         }
-    });
-});
 
-app.put('/api/weddingmusic/wedding', async (req, res) => {
-    
-    const wedding = req.body;
+        const conn = await getConnection();
+        const [result] = await conn.execute(
+            `INSERT INTO wedding_music.wedding (date, spouse_one_name, spouse_two_name, localitation) 
+            VALUES (?, ?, ?, ?)`, 
+            [date, spouse_one_name, spouse_two_name, localitation]
+        );
 
-    if( !wedding.wedding_id || isNaN(parseInt(wedding.wedding_id)) ) {
-    return res.status(400).json({
-      success: false,
-      error: 'El Id no es un número'
-    });
-  }
+        await conn.end();
 
-    const conn = await getConnection();
+        res.json({
+            success: true,
+            message: "Boda registrada correctamente",
+            wedding: { id: result.insertId, date, spouse_one_name, spouse_two_name, localitation }
+        });
 
-    const [result] = await conn.execute(
-    `
-    UPDATE wedding_music.wedding
-      SET date = ?, spouse_one_name = ?, spouse_two_name = ?, localitation = ?
-      WHERE wedding_id = ?`,
-    [ wedding.date, wedding.spouse_one_name, wedding.spouse_two_name, wedding.localitation ] 
-    
-  );
-
-  // Cierro la conexión
-
-  await conn.end();
-
-  // Respodo
-
-  res.json({
-    success: true,
-    updatedWedding: {
-      ...req.body
+    } catch (error) {
+        res.status(500).json({ 
+            success: false, 
+            error: "Error al registrar la boda" });
     }
 });
+
+
+app.put('/api/weddingmusic/wedding/:id', async (req, res) => {
+    
+    try {
+        const { wedding_id, date, spouse_one_name, spouse_two_name, localitation } = req.body;
+
+        if (!wedding_id || isNaN(parseInt(wedding_id))) {
+            return res.status(400).json({ success: false, error: "ID de boda inválido" });
+        }
+
+        const conn = await getConnection();
+
+        const [result] = await conn.execute(
+            `UPDATE wedding_music.wedding 
+            SET date = ?, spouse_one_name = ?, spouse_two_name = ?, localitation = ?
+            WHERE wedding_id = ?`,
+            [date, spouse_one_name, spouse_two_name, localitation, wedding_id]
+        );
+
+        await conn.end();
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, error: "Boda no encontrada" });
+        }
+
+        res.json({ 
+            success: true, 
+            message: "Boda actualizada correctamente", 
+            updatedWedding: req.body });
+
+    } catch (error) {
+        res.status(500).json({ 
+            success: false, 
+            error: "Error al actualizar la boda" });
+    }
 });
 
-app.delete('/api/weddingmusic/wedding', async (req, res) => {
-    res.send({ message: 'Endpoint sin usar' });
+app.delete('/api/weddingmusic/wedding/:id', async (req, res) => {
+    try {
+        const { wedding_id } = req.body;
+
+        if (!wedding_id || isNaN(parseInt(wedding_id))) {
+            return res.status(400).json({ success: false, error: "ID de boda inválido" });
+        }
+
+        const conn = await getConnection();
+        const [result] = await conn.execute(
+            `DELETE FROM wedding_music.wedding WHERE wedding_id = ?`,
+            [wedding_id]
+        );
+
+        await conn.end();
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, error: "Boda no encontrada" });
+        }
+
+        res.json({ success: true, message: "Boda eliminada correctamente" });
+
+    } catch (error) {
+        res.status(500).json({ success: false, error: "Error al eliminar la boda" });
+    }
+});
+
+
+
+app.get('/api/weddingmusic/wedding/:id', async (req, res) => {
+
+    try {
+        const { id } = req.params;
+        const conn = await getConnection();
+
+        const [result] = await conn.execute(
+            `SELECT * FROM wedding_music.wedding WHERE wedding_id = ?`, 
+            [id]
+        );
+
+        await conn.end();
+
+        if (result.length === 0) {
+            return res.status(404).json({ success: false, error: "Boda no encontrada" });
+        }
+
+        res.json({ 
+            success: true, 
+            wedding: result[0] });
+
+    } catch (error) {
+        res.status(500).json({ 
+            success: false, 
+            error: "Error al obtener la boda" });
+    }
 });
