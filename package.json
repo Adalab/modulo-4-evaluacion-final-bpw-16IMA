@@ -1,9 +1,36 @@
 {
+  "name": "wedding_music-server",
+  "version": "0.0.1",
+  "description": "Web application to registrer the music that you like to listen on your wedding",
+  "keywords": [
+    "server",
+    "expressjs",
+    "cors",
+    "mysql"
+  ],
+  "author": "Adalab+Adalabers Promo Clara",
+  "license": "CC-BY-SA-4.0",
+  "main": "src/index.js",
+  "homepage": "https://github.com/Adalab/modulo-4-evaluacion-final-bpw-16IMA#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Adalab/modulo-4-evaluacion-final-bpw-16IMA"
+  },
+  "bugs": {
+    "url": "https://github.com/Adalab/modulo-4-evaluacion-final-bpw-16IMA/issues"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "dependencies": {
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.13.0"
   }
 }
+
